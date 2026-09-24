@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
   Bell,
@@ -9,6 +9,7 @@ import {
   Command,
   GitBranch,
   LayoutDashboard,
+  LogOut,
   Menu,
   Moon,
   Network,
@@ -18,27 +19,15 @@ import {
   Users,
   X,
 } from "lucide-react";
-import {
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-import {
-  NavLink,
-  Outlet,
-  useNavigate,
-} from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 
 import { useWorkspace } from "../contexts/WorkspaceContext";
 import { api } from "../lib/api";
 import { getWorkspaceActivity } from "../lib/activity";
-import { getAccessToken } from "../lib/auth";
+import { getAccessToken, removeAccessToken } from "../lib/auth";
 import { searchDecisions } from "../lib/search";
-import {
-  getStoredTheme,
-  saveTheme,
-  type Theme,
-} from "../lib/theme";
+import { getStoredTheme, saveTheme, type Theme } from "../lib/theme";
 import WorkspaceSetupPage from "../pages/app/WorkspaceSetupPage";
 import type { MeResponse } from "../types/auth";
 
@@ -174,6 +163,7 @@ function formatRelativeTime(value: string | Date) {
 
 export default function AppLayout() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const token = getAccessToken();
 
   const {
@@ -192,11 +182,13 @@ export default function AppLayout() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
   const [theme, setTheme] = useState<Theme>(() => getStoredTheme());
 
   const workspaceMenuRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const { data } = useQuery({
@@ -230,13 +222,8 @@ export default function AppLayout() {
     isError: activityError,
     refetch: refetchActivity,
   } = useQuery({
-    queryKey: [
-      "workspace-activity",
-      activeWorkspace?.id,
-      "notifications",
-    ],
-    queryFn: () =>
-      getWorkspaceActivity(activeWorkspace!.id, 1, 8),
+    queryKey: ["workspace-activity", activeWorkspace?.id, "notifications"],
+    queryFn: () => getWorkspaceActivity(activeWorkspace!.id, 1, 8),
     enabled: Boolean(activeWorkspace?.id) && notificationsOpen,
     staleTime: 30_000,
   });
@@ -260,6 +247,10 @@ export default function AppLayout() {
         !notificationsRef.current.contains(target)
       ) {
         setNotificationsOpen(false);
+      }
+
+      if (profileMenuRef.current && !profileMenuRef.current.contains(target)) {
+        setProfileMenuOpen(false);
       }
     }
 
@@ -286,12 +277,12 @@ export default function AppLayout() {
   useEffect(() => {
     function handleKeyboard(event: KeyboardEvent) {
       const isSearchShortcut =
-        (event.ctrlKey || event.metaKey) &&
-        event.key.toLowerCase() === "k";
+        (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k";
 
       if (isSearchShortcut) {
         event.preventDefault();
         setNotificationsOpen(false);
+        setProfileMenuOpen(false);
         setMobileMenuOpen(false);
         setSearchOpen(true);
         return;
@@ -300,6 +291,7 @@ export default function AppLayout() {
       if (event.key === "Escape") {
         setSearchOpen(false);
         setNotificationsOpen(false);
+        setProfileMenuOpen(false);
         setMobileMenuOpen(false);
       }
     }
@@ -326,8 +318,7 @@ export default function AppLayout() {
   }, [searchOpen]);
 
   const toggleTheme = () => {
-    const nextTheme: Theme =
-      theme === "light" ? "dark" : "light";
+    const nextTheme: Theme = theme === "light" ? "dark" : "light";
 
     setTheme(nextTheme);
     saveTheme(nextTheme);
@@ -335,6 +326,7 @@ export default function AppLayout() {
 
   const openSearch = () => {
     setNotificationsOpen(false);
+    setProfileMenuOpen(false);
     setMobileMenuOpen(false);
     setSearchOpen(true);
   };
@@ -346,6 +338,7 @@ export default function AppLayout() {
 
   const toggleNotifications = () => {
     setSearchOpen(false);
+    setProfileMenuOpen(false);
     setNotificationsOpen((current) => !current);
   };
 
@@ -354,11 +347,25 @@ export default function AppLayout() {
     setWorkspaceMenuOpen(false);
     setMobileMenuOpen(false);
     setNotificationsOpen(false);
+    setProfileMenuOpen(false);
   };
 
   const openDecision = (decisionId: number) => {
     closeSearch();
     navigate(`/app/decisions/${decisionId}`);
+  };
+
+  const handleLogout = () => {
+    removeAccessToken();
+    queryClient.clear();
+
+    setProfileMenuOpen(false);
+    setNotificationsOpen(false);
+    setMobileMenuOpen(false);
+    setSearchOpen(false);
+    setSearchQuery("");
+
+    navigate("/login", { replace: true });
   };
 
   if (workspacesLoading) {
@@ -430,11 +437,7 @@ export default function AppLayout() {
               onClick={toggleTheme}
               className="flex size-10 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 shadow-sm transition hover:text-zinc-900 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300 dark:hover:text-white"
             >
-              {theme === "light" ? (
-                <Moon size={17} />
-              ) : (
-                <Sun size={17} />
-              )}
+              {theme === "light" ? <Moon size={17} /> : <Sun size={17} />}
             </button>
 
             <div className="flex size-8 items-center justify-center rounded-lg bg-thread-100 text-xs font-semibold text-thread-700">
@@ -450,6 +453,16 @@ export default function AppLayout() {
                 {user?.email ?? ""}
               </p>
             </div>
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="ml-1 flex size-10 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 shadow-sm transition hover:bg-red-50 hover:text-red-600 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-red-500/10 dark:hover:text-red-300"
+              aria-label="Log out"
+              title="Log out"
+            >
+              <LogOut size={17} />
+            </button>
           </div>
         </header>
 
@@ -476,15 +489,10 @@ export default function AppLayout() {
           </div>
         </div>
 
-        <div
-          ref={workspaceMenuRef}
-          className="relative px-4 pt-3"
-        >
+        <div ref={workspaceMenuRef} className="relative px-4 pt-3">
           <button
             type="button"
-            onClick={() =>
-              setWorkspaceMenuOpen((current) => !current)
-            }
+            onClick={() => setWorkspaceMenuOpen((current) => !current)}
             className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2.5 text-left transition hover:bg-white/[0.09]"
           >
             <div className="flex min-w-0 items-center gap-2.5">
@@ -519,16 +527,13 @@ export default function AppLayout() {
 
               <div className="max-h-60 overflow-y-auto">
                 {workspaces.map((workspace) => {
-                  const isActive =
-                    workspace.id === activeWorkspace.id;
+                  const isActive = workspace.id === activeWorkspace.id;
 
                   return (
                     <button
                       key={workspace.id}
                       type="button"
-                      onClick={() =>
-                        handleWorkspaceSelect(workspace.id)
-                      }
+                      onClick={() => handleWorkspaceSelect(workspace.id)}
                       className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition hover:bg-white/[0.06]"
                     >
                       <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-violet-500/15 text-[10px] font-semibold text-violet-200">
@@ -546,10 +551,7 @@ export default function AppLayout() {
                       </div>
 
                       {isActive && (
-                        <Check
-                          size={14}
-                          className="shrink-0 text-violet-300"
-                        />
+                        <Check size={14} className="shrink-0 text-violet-300" />
                       )}
                     </button>
                   );
@@ -567,9 +569,7 @@ export default function AppLayout() {
               <NavLink
                 key={item.to}
                 to={item.to}
-                className={({ isActive }) =>
-                  navigationClass(isActive)
-                }
+                className={({ isActive }) => navigationClass(isActive)}
               >
                 <Icon size={17} />
                 {item.label}
@@ -591,9 +591,7 @@ export default function AppLayout() {
                 <NavLink
                   key={item.to}
                   to={item.to}
-                  className={({ isActive }) =>
-                    navigationClass(isActive)
-                  }
+                  className={({ isActive }) => navigationClass(isActive)}
                 >
                   <Icon size={17} />
                   {item.label}
@@ -633,9 +631,7 @@ export default function AppLayout() {
       {/* Mobile drawer */}
       <aside
         className={`fixed inset-y-0 left-0 z-50 flex w-[min(86vw,320px)] flex-col bg-[#171528] text-white shadow-2xl transition-transform duration-300 lg:hidden ${
-          mobileMenuOpen
-            ? "translate-x-0"
-            : "-translate-x-full"
+          mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div className="flex h-20 items-center justify-between border-b border-white/10 px-5">
@@ -670,20 +666,15 @@ export default function AppLayout() {
 
           <div className="space-y-1">
             {workspaces.map((workspace) => {
-              const isActive =
-                workspace.id === activeWorkspace.id;
+              const isActive = workspace.id === activeWorkspace.id;
 
               return (
                 <button
                   key={workspace.id}
                   type="button"
-                  onClick={() =>
-                    handleWorkspaceSelect(workspace.id)
-                  }
+                  onClick={() => handleWorkspaceSelect(workspace.id)}
                   className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition ${
-                    isActive
-                      ? "bg-white/10"
-                      : "hover:bg-white/[0.06]"
+                    isActive ? "bg-white/10" : "hover:bg-white/[0.06]"
                   }`}
                 >
                   <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-violet-500/20 text-[10px] font-semibold text-violet-200">
@@ -701,10 +692,7 @@ export default function AppLayout() {
                   </div>
 
                   {isActive && (
-                    <Check
-                      size={14}
-                      className="shrink-0 text-violet-300"
-                    />
+                    <Check size={14} className="shrink-0 text-violet-300" />
                   )}
                 </button>
               );
@@ -722,9 +710,7 @@ export default function AppLayout() {
                   key={item.to}
                   to={item.to}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={({ isActive }) =>
-                    navigationClass(isActive)
-                  }
+                  className={({ isActive }) => navigationClass(isActive)}
                 >
                   <Icon size={17} />
                   {item.label}
@@ -746,12 +732,8 @@ export default function AppLayout() {
                   <NavLink
                     key={item.to}
                     to={item.to}
-                    onClick={() =>
-                      setMobileMenuOpen(false)
-                    }
-                    className={({ isActive }) =>
-                      navigationClass(isActive)
-                    }
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={({ isActive }) => navigationClass(isActive)}
                   >
                     <Icon size={17} />
                     {item.label}
@@ -768,7 +750,7 @@ export default function AppLayout() {
               {user ? getInitials(user.name) : "?"}
             </div>
 
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="truncate text-xs font-medium text-zinc-200">
                 {user?.name ?? "Loading..."}
               </p>
@@ -778,6 +760,15 @@ export default function AppLayout() {
               </p>
             </div>
           </div>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="mt-3 flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-xs font-medium text-red-300 transition hover:bg-red-500/10"
+          >
+            <LogOut size={16} />
+            Log out
+          </button>
         </div>
       </aside>
 
@@ -792,6 +783,7 @@ export default function AppLayout() {
               aria-expanded={mobileMenuOpen}
               onClick={() => {
                 setNotificationsOpen(false);
+                setProfileMenuOpen(false);
                 setMobileMenuOpen(true);
               }}
               className="flex size-10 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-700 shadow-sm transition hover:bg-zinc-50 dark:border-white/10 dark:bg-white/5 dark:text-zinc-200 dark:hover:bg-white/10"
@@ -814,18 +806,14 @@ export default function AppLayout() {
             onClick={openSearch}
             className="hidden items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-left shadow-sm transition hover:border-zinc-300 lg:flex lg:w-72 dark:border-white/10 dark:bg-white/5 dark:hover:border-white/20"
           >
-            <Search
-              size={16}
-              className="shrink-0 text-zinc-400"
-            />
+            <Search size={16} className="shrink-0 text-zinc-400" />
 
             <span className="truncate text-sm text-zinc-400">
               Search decisions...
             </span>
 
             <span className="ml-auto flex shrink-0 items-center gap-1 rounded-md border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[10px] text-zinc-400 dark:border-white/10 dark:bg-white/5">
-              <Command size={10} />
-              K
+              <Command size={10} />K
             </span>
           </button>
 
@@ -847,24 +835,15 @@ export default function AppLayout() {
               aria-label={`Switch to ${
                 theme === "light" ? "dark" : "light"
               } mode`}
-              title={`Switch to ${
-                theme === "light" ? "dark" : "light"
-              } mode`}
+              title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
               onClick={toggleTheme}
               className="flex size-10 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 shadow-sm transition hover:text-zinc-900 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300 dark:hover:text-white"
             >
-              {theme === "light" ? (
-                <Moon size={17} />
-              ) : (
-                <Sun size={17} />
-              )}
+              {theme === "light" ? <Moon size={17} /> : <Sun size={17} />}
             </button>
 
             {/* Notifications */}
-            <div
-              ref={notificationsRef}
-              className="relative"
-            >
+            <div ref={notificationsRef} className="relative">
               <button
                 type="button"
                 aria-label="Notifications"
@@ -956,19 +935,14 @@ export default function AppLayout() {
                               </p>
 
                               <p className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-400">
-                                {activity.actor?.name ??
-                                  "THREAD"}
+                                {activity.actor?.name ?? "THREAD"}
                                 {activity.entityType
-                                  ? ` · ${formatAction(
-                                      activity.entityType,
-                                    )}`
+                                  ? ` · ${formatAction(activity.entityType)}`
                                   : ""}
                               </p>
 
                               <p className="mt-1 text-[10px] text-zinc-400">
-                                {formatRelativeTime(
-                                  activity.createdAt,
-                                )}
+                                {formatRelativeTime(activity.createdAt)}
                               </p>
                             </div>
                           </div>
@@ -992,20 +966,61 @@ export default function AppLayout() {
             </div>
 
             {/* User */}
-            <div className="ml-0.5 flex items-center gap-2 rounded-xl p-1.5 sm:pr-2">
-              <div className="flex size-8 items-center justify-center rounded-lg bg-thread-100 text-xs font-semibold text-thread-700">
-                {user ? getInitials(user.name) : "?"}
-              </div>
+            <div ref={profileMenuRef} className="relative ml-0.5">
+              <button
+                type="button"
+                aria-label="Open account menu"
+                aria-expanded={profileMenuOpen}
+                onClick={() => {
+                  setNotificationsOpen(false);
+                  setProfileMenuOpen((current) => !current);
+                }}
+                className="flex items-center gap-2 rounded-xl p-1.5 transition hover:bg-zinc-100 sm:pr-2 dark:hover:bg-white/[0.06]"
+              >
+                <div className="flex size-8 items-center justify-center rounded-lg bg-thread-100 text-xs font-semibold text-thread-700">
+                  {user ? getInitials(user.name) : "?"}
+                </div>
 
-              <div className="hidden min-w-0 text-left md:block">
-                <p className="max-w-36 truncate text-xs font-semibold text-zinc-800 dark:text-zinc-100">
-                  {user?.name ?? "Loading..."}
-                </p>
+                <div className="hidden min-w-0 text-left md:block">
+                  <p className="max-w-36 truncate text-xs font-semibold text-zinc-800 dark:text-zinc-100">
+                    {user?.name ?? "Loading..."}
+                  </p>
 
-                <p className="max-w-36 truncate text-[10px] text-zinc-400">
-                  {user?.email ?? ""}
-                </p>
-              </div>
+                  <p className="max-w-36 truncate text-[10px] text-zinc-400">
+                    {user?.email ?? ""}
+                  </p>
+                </div>
+
+                <ChevronDown
+                  size={14}
+                  className={`hidden text-zinc-400 transition md:block ${
+                    profileMenuOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              {profileMenuOpen && (
+                <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-64 overflow-hidden rounded-2xl border border-zinc-200 bg-white p-1.5 shadow-2xl dark:border-white/10 dark:bg-[#1a1827]">
+                  <div className="border-b border-zinc-100 px-3 py-3 dark:border-white/10">
+                    <p className="truncate text-sm font-semibold text-zinc-900 dark:text-white">
+                      {user?.name ?? "THREAD user"}
+                    </p>
+
+                    <p className="mt-1 truncate text-xs text-zinc-400">
+                      {user?.email ?? ""}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="mt-1 flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+                  >
+                    <LogOut size={16} />
+                    Log out
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>
@@ -1025,18 +1040,13 @@ export default function AppLayout() {
         >
           <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#1a1827]">
             <div className="flex items-center gap-3 border-b border-zinc-100 px-4 dark:border-white/10 sm:px-5">
-              <Search
-                size={19}
-                className="shrink-0 text-zinc-400"
-              />
+              <Search size={19} className="shrink-0 text-zinc-400" />
 
               <input
                 ref={searchInputRef}
                 type="search"
                 value={searchQuery}
-                onChange={(event) =>
-                  setSearchQuery(event.target.value)
-                }
+                onChange={(event) => setSearchQuery(event.target.value)}
                 placeholder="Search decisions, projects or workspaces..."
                 className="h-16 min-w-0 flex-1 bg-transparent text-sm text-zinc-900 outline-none placeholder:text-zinc-400 dark:text-white"
               />
@@ -1064,8 +1074,8 @@ export default function AppLayout() {
                   </p>
 
                   <p className="mx-auto mt-1 max-w-sm text-xs leading-5 text-zinc-400">
-                    Find decisions using their title, context,
-                    reasoning, status, project or workspace.
+                    Find decisions using their title, context, reasoning,
+                    status, project or workspace.
                   </p>
                 </div>
               ) : normalizedSearchQuery.length < 2 ? (
@@ -1106,10 +1116,8 @@ export default function AppLayout() {
                 <div className="p-2">
                   <div className="px-3 pb-2 pt-1">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">
-                      {searchData?.data.pagination.total ?? 0}{" "}
-                      result
-                      {(searchData?.data.pagination.total ??
-                        0) === 1
+                      {searchData?.data.pagination.total ?? 0} result
+                      {(searchData?.data.pagination.total ?? 0) === 1
                         ? ""
                         : "s"}
                     </p>
@@ -1119,9 +1127,7 @@ export default function AppLayout() {
                     <button
                       key={result.id}
                       type="button"
-                      onClick={() =>
-                        openDecision(result.id)
-                      }
+                      onClick={() => openDecision(result.id)}
                       className="flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-zinc-50 dark:hover:bg-white/[0.05]"
                     >
                       <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl bg-thread-50 text-thread-700 dark:bg-thread-500/10 dark:text-thread-300">
@@ -1158,9 +1164,7 @@ export default function AppLayout() {
             <div className="flex items-center justify-between border-t border-zinc-100 px-4 py-2.5 text-[10px] text-zinc-400 dark:border-white/10">
               <span>Search across your accessible workspaces</span>
 
-              <span className="hidden sm:inline">
-                Esc to close
-              </span>
+              <span className="hidden sm:inline">Esc to close</span>
             </div>
           </div>
         </div>
