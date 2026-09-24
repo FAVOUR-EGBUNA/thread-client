@@ -1,8 +1,8 @@
 # THREAD - Decision Intelligence System
 
-THREAD is a full-stack decision intelligence application designed to help users structure complex decisions, compare alternatives, evaluate trade-offs, and preserve the reasoning behind their choices.
+THREAD is a full-stack decision intelligence application designed to help teams capture important decisions, preserve the reasoning behind them, understand how decisions relate to one another, and maintain a traceable history as decisions evolve.
 
-Instead of treating decisions as simple notes or task items, THREAD provides a structured workspace where users can define a decision, create options, establish weighted criteria, score alternatives, visualize relationships, and track the decision through its lifecycle.
+Instead of allowing important decisions to disappear into meetings, messages, or disconnected documents, THREAD provides a structured workspace where teams can organise projects, record decisions, connect related decisions, track status changes, and visualise their decision landscape.
 
 ## Live Application
 
@@ -20,53 +20,128 @@ https://github.com/FAVOUR-EGBUNA/thread-api
 
 ## Overview
 
-Important decisions often involve several competing options, priorities, assumptions, and trade-offs.
+Important decisions rarely exist in isolation.
 
-THREAD was built to make that reasoning explicit.
+One decision may depend on another, conflict with an earlier choice, support a different direction, affect another part of a project, or eventually replace a previous decision.
 
-A user can create a decision workspace, define the available options, establish the criteria that matter, assign weights to those criteria, evaluate each option, and use the resulting analysis to support a final decision.
+THREAD was built to make those relationships visible.
 
-The application combines structured decision modelling with a visual interface so that the reasoning behind a decision remains understandable and traceable.
+The application gives users a structured environment for organising decisions inside projects and workspaces while preserving the context, reasoning, status history, relationships, and activity surrounding them.
+
+The result is a decision record that explains not only what was decided, but how decisions connect and evolve over time.
 
 ---
 
 ## Core Features
 
-### Decision Workspaces
+### Authentication
 
-Create and manage individual decision threads with their own context, status, options, criteria, and analysis.
+Users can create accounts, sign in, and access protected application areas.
 
-### Options
+The frontend includes dedicated registration and login flows together with protected and guest-only routing.
 
-Define the alternatives being considered within a decision and keep them organised in one workspace.
+### Workspaces
 
-### Weighted Criteria
+THREAD organises collaboration around workspaces.
 
-Create evaluation criteria and assign weights based on their relative importance to the decision.
+Users can create and access workspaces that contain their projects, members, decisions, and activity.
 
-### Option Scoring
+An active workspace context allows the application to keep workspace-specific data and navigation coordinated across the interface.
 
-Score individual options against defined criteria to create a structured comparison between alternatives.
+### Workspace Members
 
-### Decision Analysis
+Workspace membership allows teams to collaborate within the same decision environment.
 
-Use the collected criteria, weights, and scores to understand how different options perform against the priorities of the decision.
+The application provides interfaces for viewing and managing workspace members while the backend enforces workspace permissions.
 
-### Visual Decision Mapping
+### Projects
 
-THREAD uses React Flow to provide an interactive visual representation of decision information and relationships.
+Projects provide a way to group related decisions inside a workspace.
+
+Users can:
+
+- Create projects
+- View workspace projects
+- Open individual projects
+- Access decisions belonging to a project
+- View project-level decision graphs
+
+### Decisions
+
+Decisions are the central records in THREAD.
+
+Each decision can preserve:
+
+- Title
+- Context
+- Decision
+- Reasoning
+- Status
+- Project association
+- Relationships
+- Status history
+
+This allows the reasoning behind important choices to remain accessible after the original conversation or meeting has ended.
 
 ### Decision Lifecycle
 
-Track decisions through different stages instead of treating them as isolated records.
+THREAD supports four decision states:
 
-### Authentication
+```text
+PROPOSED
+ACCEPTED
+REJECTED
+SUPERSEDED
+```
 
-Secure account creation and login allow each user to access and manage their own decision data.
+This makes it possible to distinguish between decisions that are still being considered, decisions that have been accepted, decisions that were rejected, and decisions that were later replaced.
+
+### Decision History
+
+Status changes are preserved as part of a decision's history.
+
+This creates a traceable record of how a decision changed over time rather than storing only its latest state.
+
+### Decision Relationships
+
+THREAD allows decisions to be connected using meaningful relationship types:
+
+```text
+DEPENDS_ON
+AFFECTS
+SUPPORTS
+CONFLICTS_WITH
+SUPERSEDES
+RELATED_TO
+```
+
+These relationships help reveal dependencies, conflicts, supporting decisions, and downstream effects across a project.
+
+### Decision Graph
+
+THREAD uses React Flow through `@xyflow/react` to transform decision relationships into an interactive graph.
+
+The graph provides a visual representation of connected decisions, helping users understand how choices within a project influence or relate to one another.
+
+### Impact Analysis
+
+Decision relationships can be used to examine the impact surrounding a particular decision.
+
+This helps users move beyond viewing decisions as isolated records and instead understand their position within a wider decision network.
+
+### Search
+
+THREAD includes search functionality for finding relevant information without manually navigating through every project or decision.
+
+### Activity
+
+Workspace activity provides a historical view of meaningful actions performed within a workspace.
+
+This gives users greater visibility into how the workspace and its decision records have changed.
 
 ### Responsive Interface
 
-The application is designed to remain usable across desktop and smaller screen sizes.
+THREAD is designed to remain usable across different screen sizes while maintaining access to its primary workspace and decision-management features.
 
 ---
 
@@ -77,11 +152,14 @@ The application is designed to remain usable across desktop and smaller screen s
 - React 19
 - TypeScript
 - Vite
-- Tailwind CSS
+- Tailwind CSS 4
 - TanStack Query
 - React Hook Form
 - Zod
+- React Router
 - React Flow
+- Lucide React
+- date-fns
 
 ### Backend
 
@@ -105,7 +183,7 @@ The THREAD frontend communicates with a separate REST API built with:
 
 ## Application Architecture
 
-THREAD follows a separated frontend/backend architecture.
+THREAD uses a separated frontend and backend architecture.
 
 ```text
 User
@@ -124,30 +202,176 @@ Prisma ORM
 PostgreSQL Database
 ```
 
-The frontend is responsible for the user interface, client-side state, forms, validation, server-state management, and decision visualisation.
+The frontend is responsible for:
 
-The backend handles authentication, business logic, validation, persistence, and access to decision data.
+- User interface
+- Routing
+- Authentication state
+- Workspace context
+- Form handling
+- Client-side validation
+- Server-state management
+- Decision presentation
+- Decision graph visualisation
+- Loading and error states
+
+The backend is responsible for:
+
+- Authentication
+- Authorization
+- Workspace permissions
+- Business logic
+- Data validation
+- Decision lifecycle management
+- Decision relationships
+- Activity logging
+- Persistence
+- API security
 
 ---
 
-## Frontend Responsibilities
+## Frontend Structure
 
-The frontend application handles:
+The frontend follows a feature-oriented structure.
 
-- Authentication flows
-- Decision workspace interfaces
-- Option management
-- Criteria management
-- Weight configuration
-- Score entry
-- Decision analysis presentation
-- Interactive decision visualisation
-- Form validation
-- API communication
-- Loading and error states
-- Responsive layouts
+```text
+src/
+|-- assets/
+|-- components/
+|   |-- auth/
+|   `-- decisions/
+|-- contexts/
+|-- hooks/
+|-- layouts/
+|-- lib/
+|-- pages/
+|   |-- app/
+|   `-- auth/
+|-- routes/
+|-- types/
+|-- App.tsx
+|-- index.css
+`-- main.tsx
+```
 
-TanStack Query is used to manage asynchronous server state and API requests, while React Hook Form and Zod provide structured form handling and validation.
+### Components
+
+Reusable UI and application components, including authentication route guards and decision graph visualisation.
+
+### Contexts
+
+Application-wide context such as the currently active workspace.
+
+### Hooks
+
+Feature-specific hooks manage server state for:
+
+- Workspaces
+- Projects
+- Decisions
+- Members
+- Activity
+
+### Lib
+
+The `lib` layer contains application utilities and API-facing modules for areas including:
+
+- Authentication
+- Workspaces
+- Projects
+- Decisions
+- Members
+- Activity
+- Search
+- Query configuration
+- Theme handling
+- Active workspace state
+
+### Pages
+
+THREAD contains dedicated application pages for:
+
+- Overview
+- Projects
+- Project details
+- Decisions
+- Decision details
+- Decision graph
+- Workspace members
+- Activity
+- Settings
+- Workspace setup
+
+Authentication pages are separated into login and registration flows.
+
+---
+
+## Server-State Management
+
+THREAD uses TanStack Query to manage asynchronous server state.
+
+This provides a structured approach to:
+
+- API requests
+- Loading states
+- Error states
+- Query caching
+- Data invalidation
+- Synchronisation between the interface and backend
+
+Feature-specific hooks keep API logic separated from presentation components.
+
+---
+
+## Forms and Validation
+
+React Hook Form is used for form state management.
+
+Zod provides schema-based validation for frontend input, while the backend independently validates incoming data before processing it.
+
+This creates validation boundaries on both sides of the application.
+
+---
+
+## Routing
+
+React Router manages application navigation.
+
+THREAD separates public authentication routes from protected application routes using route guard components.
+
+The application includes:
+
+```text
+GuestRoute
+ProtectedRoute
+```
+
+This prevents authenticated application areas from being exposed through normal client-side navigation to unauthenticated users.
+
+Backend authorization remains responsible for protecting the underlying data.
+
+---
+
+## Decision Visualisation
+
+One of THREAD's central frontend features is its decision graph.
+
+React Flow is used to represent decisions and their relationships visually.
+
+A project's decisions can form a network where relationships such as:
+
+```text
+DEPENDS_ON
+AFFECTS
+SUPPORTS
+CONFLICTS_WITH
+SUPERSEDES
+RELATED_TO
+```
+
+can be represented between decision nodes.
+
+This gives users another way to understand complex project history beyond a traditional list interface.
 
 ---
 
@@ -182,7 +406,13 @@ Create a `.env` file in the project root and configure the frontend API URL.
 VITE_API_URL=your_backend_api_url
 ```
 
-For local development, point this variable to the locally running THREAD API.
+For local development, point the frontend to the locally running THREAD API.
+
+Example:
+
+```env
+VITE_API_URL=http://localhost:5000/api/v1
+```
 
 ### Start Development Server
 
@@ -190,31 +420,55 @@ For local development, point this variable to the locally running THREAD API.
 npm run dev
 ```
 
-Vite will start the development server and display the local application URL in the terminal.
+Vite will start the local development server.
+
+The default local frontend URL is typically:
+
+```text
+http://localhost:5173
+```
 
 ---
 
-## Production Build
+## Available Scripts
 
-Create an optimized production build with:
+### Development
+
+```bash
+npm run dev
+```
+
+Starts the Vite development server.
+
+### Build
 
 ```bash
 npm run build
 ```
 
-The generated production files will be placed in the `dist` directory.
+Runs the TypeScript build process and creates an optimised Vite production build.
 
-To preview the production build locally:
+### Lint
+
+```bash
+npm run lint
+```
+
+Runs ESLint across the project.
+
+### Preview
 
 ```bash
 npm run preview
 ```
 
+Locally previews the generated production build.
+
 ---
 
 ## Backend
 
-THREAD uses a separate backend repository for its REST API, authentication, business logic, and PostgreSQL persistence.
+THREAD uses a separate backend repository for authentication, workspace permissions, business logic, decision relationships, activity logging, search, and PostgreSQL persistence.
 
 **Repository:**
 
@@ -224,19 +478,25 @@ https://github.com/FAVOUR-EGBUNA/thread-api
 
 https://thread-api-1kwd.onrender.com
 
+**Health Check:**
+
+https://thread-api-1kwd.onrender.com/api/v1/health
+
 ---
 
 ## Quality Assurance
 
-Before production deployment, the THREAD application was tested across its core workflows.
+THREAD has been tested across its core full-stack workflows.
 
-The backend test suite currently contains:
+The backend test suite contains:
 
 ```text
 119 tests passed
 ```
 
-The application was also verified through production testing of the deployed frontend and API.
+TypeScript type checking and production deployment were also verified during development.
+
+The deployed frontend and backend were tested together across the application's primary workflows.
 
 ---
 
@@ -247,14 +507,20 @@ THREAD was created as a portfolio-grade full-stack engineering project focused o
 The project demonstrates:
 
 - Full-stack application architecture
-- Relational data modelling
+- React and TypeScript development
 - REST API integration
-- Authentication and authorization
-- Complex form state
-- Schema validation
+- Authentication and protected routing
+- Relational data modelling
+- Workspace-based collaboration
+- Role-based permissions
 - Server-state management
-- Decision modelling
+- Form handling and schema validation
+- Decision lifecycle modelling
+- Historical state tracking
+- Graph-based data relationships
 - Interactive data visualisation
+- Search
+- Activity tracking
 - Responsive frontend development
 - Production deployment
 - Automated backend testing
