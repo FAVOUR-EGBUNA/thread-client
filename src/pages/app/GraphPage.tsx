@@ -1,5 +1,5 @@
 import { GitBranch, Network, RefreshCw } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
@@ -46,17 +46,41 @@ export default function GraphPage() {
 
   const projectIdFromUrl = Number(searchParams.get("project"));
 
-  const selectedProjectId =
+  const hasValidProjectInUrl =
     Number.isInteger(projectIdFromUrl) &&
     projectIdFromUrl > 0 &&
-    projects.some((project) => project.id === projectIdFromUrl)
-      ? projectIdFromUrl
-      : (projects[0]?.id ?? null);
+    projects.some((project) => project.id === projectIdFromUrl);
+
+  const selectedProjectId = hasValidProjectInUrl
+    ? projectIdFromUrl
+    : (projects.at(-1)?.id ?? null);
 
   const selectedProject = useMemo(
     () => projects.find((project) => project.id === selectedProjectId),
     [projects, selectedProjectId],
   );
+
+  useEffect(() => {
+    if (
+      projectsQuery.isSuccess &&
+      selectedProjectId !== null &&
+      !hasValidProjectInUrl
+    ) {
+      setSearchParams(
+        {
+          project: String(selectedProjectId),
+        },
+        {
+          replace: true,
+        },
+      );
+    }
+  }, [
+    projectsQuery.isSuccess,
+    selectedProjectId,
+    hasValidProjectInUrl,
+    setSearchParams,
+  ]);
 
   const graphQuery = useQuery({
     queryKey: ["project", selectedProjectId, "graph"],
@@ -93,21 +117,31 @@ export default function GraphPage() {
         </div>
 
         {projects.length > 0 && (
-          <select
-            value={selectedProjectId ?? ""}
-            onChange={(event) => {
-              setSearchParams({
-                project: event.target.value,
-              });
-            }}
-            className="h-11 min-w-[240px] rounded-xl border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 outline-none"
-          >
-            {projects.map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.name}
-              </option>
-            ))}
-          </select>
+          <div className="flex flex-col gap-1.5">
+            <label
+              htmlFor="graph-project"
+              className="text-xs font-medium text-zinc-500"
+            >
+              Project
+            </label>
+
+            <select
+              id="graph-project"
+              value={selectedProjectId ?? ""}
+              onChange={(event) => {
+                setSearchParams({
+                  project: event.target.value,
+                });
+              }}
+              className="h-11 min-w-[260px] rounded-xl border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 outline-none transition focus:border-thread-400 focus:ring-4 focus:ring-thread-100"
+            >
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+          </div>
         )}
       </div>
 
@@ -156,7 +190,7 @@ export default function GraphPage() {
               </p>
 
               <p className="mt-1 text-xs text-zinc-500">
-                {graphQuery.data?.data.nodeCount ?? 0} decisions ·{" "}
+                {graphQuery.data?.data.nodeCount ?? 0} decisions {"\u00B7"}{" "}
                 {graphQuery.data?.data.edgeCount ?? 0} relationships
               </p>
             </div>
@@ -165,7 +199,7 @@ export default function GraphPage() {
               type="button"
               disabled={graphQuery.isFetching}
               onClick={() => graphQuery.refetch()}
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 disabled:opacity-50"
             >
               <RefreshCw
                 size={15}
