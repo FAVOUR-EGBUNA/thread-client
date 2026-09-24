@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
@@ -26,6 +28,12 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+  background: #0f0e18;
 }
 
 * {
@@ -43,6 +51,14 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background: #f8f9fc;
+  transition:
+    background-color 180ms ease,
+    color 180ms ease;
+}
+
+html.dark body {
+  background: #0f0e18;
+  color: #f4f4f5;
 }
 
 button,
@@ -63,4 +79,91 @@ a {
 
 #root {
   min-height: 100vh;
+}
+
+/*
+  THREAD dark-mode compatibility layer.
+
+  Existing pages use zinc/white utility classes heavily. These overrides let
+  the current application adopt dark mode without duplicating every page.
+*/
+
+html.dark .bg-\[\#f7f7fa\] {
+  background-color: #0f0e18;
+}
+
+html.dark .bg-\[\#f7f7fa\]\/90 {
+  background-color: rgb(15 14 24 / 0.9);
+}
+
+html.dark .bg-white {
+  background-color: #1a1827;
+}
+
+html.dark .bg-white\/70 {
+  background-color: rgb(26 24 39 / 0.7);
+}
+
+html.dark .bg-zinc-50 {
+  background-color: #211f30;
+}
+
+html.dark .bg-zinc-100 {
+  background-color: #2a2738;
+}
+
+html.dark .text-zinc-950,
+html.dark .text-zinc-900,
+html.dark .text-zinc-800 {
+  color: #f4f4f5;
+}
+
+html.dark .text-zinc-700,
+html.dark .text-zinc-600 {
+  color: #d4d4d8;
+}
+
+html.dark .text-zinc-500 {
+  color: #a1a1aa;
+}
+
+html.dark .text-zinc-400 {
+  color: #a1a1aa;
+}
+
+html.dark .border-zinc-200,
+html.dark .border-zinc-200\/70 {
+  border-color: rgb(255 255 255 / 0.1);
+}
+
+html.dark .shadow-sm {
+  --tw-shadow-color: rgb(0 0 0 / 0.2);
+}
+
+html.dark input,
+html.dark textarea,
+html.dark select {
+  color: #f4f4f5;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #71717a;
+}
+
+/* Keep primary THREAD buttons readable in both themes */
+.bg-thread-950,
+.bg-thread-900,
+.bg-thread-800,
+.bg-thread-700,
+.bg-thread-600 {
+  color: #ffffff;
+}
+
+html.dark .bg-thread-950,
+html.dark .bg-thread-900,
+html.dark .bg-thread-800,
+html.dark .bg-thread-700,
+html.dark .bg-thread-600 {
+  color: #ffffff;
 }
