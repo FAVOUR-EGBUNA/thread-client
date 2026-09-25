@@ -18,6 +18,40 @@ https://github.com/FAVOUR-EGBUNA/thread-api
 
 ---
 
+## Product Preview
+
+### Workspace Overview
+
+The overview brings projects, decision states, recent decisions, and workspace activity into one place so users can quickly understand what is happening across their decision environment.
+
+![THREAD workspace overview](./docs/screenshots/overview.png)
+
+### Project Organisation
+
+Decisions are organised inside projects, allowing teams to separate different areas of work while keeping them within the same workspace.
+
+![THREAD projects](./docs/screenshots/projects.png)
+
+### Project Decision Workspace
+
+Each project provides its own decision workspace, showing the decisions recorded for that project together with their current lifecycle states.
+
+![THREAD project detail](./docs/screenshots/project-detail.png)
+
+### Decision Record
+
+A decision preserves more than its final outcome. THREAD records the context, decision, reasoning, lifecycle status, status history, and relationships surrounding it.
+
+![THREAD decision detail](./docs/screenshots/decision-detail.png)
+
+### Decision Graph
+
+Related decisions can be explored as an interactive graph, making dependencies, conflicts, support relationships, superseded decisions, and other connections visible.
+
+![THREAD decision graph](./docs/screenshots/decision-graph.png)
+
+---
+
 ## Overview
 
 Important decisions rarely exist in isolation.
@@ -470,17 +504,11 @@ Locally previews the generated production build.
 
 THREAD uses a separate backend repository for authentication, workspace permissions, business logic, decision relationships, activity logging, search, and PostgreSQL persistence.
 
-**Repository:**
+**Repository:** https://github.com/FAVOUR-EGBUNA/thread-api
 
-https://github.com/FAVOUR-EGBUNA/thread-api
+**Production API:** https://thread-api-1kwd.onrender.com
 
-**Production API:**
-
-https://thread-api-1kwd.onrender.com
-
-**Health Check:**
-
-https://thread-api-1kwd.onrender.com/api/v1/health
+**Health Check:** https://thread-api-1kwd.onrender.com/api/v1/health
 
 ---
 
@@ -497,6 +525,25 @@ The backend test suite contains:
 TypeScript type checking and production deployment were also verified during development.
 
 The deployed frontend and backend were tested together across the application's primary workflows.
+
+---
+
+## Engineering Highlights
+
+THREAD goes beyond storing standalone records by modelling decisions as connected, evolving entities.
+
+Key engineering challenges addressed in the project include:
+
+- Modelling relationships between decisions
+- Preserving decision lifecycle history
+- Enforcing workspace-level access and permissions
+- Synchronising frontend server state with a REST API
+- Representing relational data as an interactive graph
+- Maintaining authentication across protected routes
+- Recording workspace activity
+- Supporting project-scoped decision networks
+- Validating data independently across frontend and backend boundaries
+- Deploying the frontend and API as separate production services
 
 ---
 
